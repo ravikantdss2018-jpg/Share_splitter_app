@@ -1,16 +1,12 @@
-## Future Plans
+## Configuration
 
-ExpenseSplitter is currently in public testing.
+Create a copy of `config.example.js` and rename it to `config.js`.
 
-Planned features include:
+Then add your own Supabase project details:
 
-- Starter and Pro subscriptions
-- PDF and Excel reports
-- Receipt uploads
-- Expense approval workflow
-- Member permissions
-- Audit history
-- Payment reminders
-- Google Play release
-
-Subscription pricing will be introduced after collecting reliable feedback from real users.
+```javascript
+window.APP_CONFIG = {
+  PUBLIC_APP_URL: "https://your-hosted-app.pages.dev",
+  SUPABASE_URL: "https://your-project.supabase.co",
+  SUPABASE_PUBLISHABLE_KEY: "your-publishable-key"
+};
