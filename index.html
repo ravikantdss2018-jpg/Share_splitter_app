@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f766e">
+  <meta name="description" content="Shared real-time business expense manager for partners.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="ExpenseSplitter">
+  <link rel="manifest" href="./manifest.webmanifest?v=15">
+  <link rel="apple-touch-icon" sizes="180x180" href="./icons/icon-180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="./icons/icon-48.png">
+  <link rel="stylesheet" href="./styles.css?v=15">
+  <title>ExpenseSplitter</title>
+</head>
+<body>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <section id="configuration-screen" class="center-screen" hidden>
+    <article class="auth-card">
+      <p class="eyebrow">Setup required</p>
+      <h1>Connect the cloud database</h1>
+      <p>
+        Add your Supabase Project URL and Publishable Key inside
+        <code>config.js</code>, then publish the project again.
+      </p>
+      <p class="muted">The complete instructions are included in SETUP_GUIDE.md.</p>
+    </article>
+  </section>
+
+  <section id="auth-screen" class="center-screen" hidden>
+    <article class="auth-card">
+      <div class="brand-mark">ES</div>
+      <p class="eyebrow">Shared partner expenses</p>
+      <h1>ExpenseSplitter</h1>
+      <p class="muted">
+        Sign in from any phone or computer. Everyone in the same business
+        workspace sees the same expenses.
+      </p>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" type="button" data-auth-mode="login">Sign in</button>
+        <button class="auth-tab" type="button" data-auth-mode="signup">Create account</button>
+      </div>
+
+      <form id="auth-form">
+        <label>
+          <span>Email address</span>
+          <input id="auth-email" type="email" autocomplete="email" required>
+        </label>
+        <label>
+          <span>Password</span>
+          <input id="auth-password" type="password" minlength="6"
+                 autocomplete="current-password" required>
+        </label>
+        <button id="auth-submit" class="button button-primary full-button" type="submit">
+          Sign in
+        </button>
+      </form>
+
+      <button id="forgot-password" class="text-button auth-link" type="button">
+        Forgot password?
+      </button>
+      <button class="button button-secondary full-button install-entry"
+              type="button" data-open-install>
+        Install ExpenseSplitter
+      </button>
+      <p id="auth-message" class="helper-text"></p>
+    </article>
+  </section>
+
+  <section id="workspace-screen" class="center-screen" hidden>
+    <article class="auth-card workspace-card">
+      <p class="eyebrow">One shared business</p>
+      <h1>Create or join a workspace</h1>
+      <p class="muted">
+        The first person creates the business and shares its invite code.
+        Every other person joins using that same code.
+      </p>
+
+      <div class="workspace-choice">
+        <form id="create-workspace-form" class="choice-panel">
+          <h2>Create business</h2>
+          <label>
+            <span>Business name</span>
+            <input id="new-workspace-name" type="text" maxlength="60"
+                   placeholder="Example: RK Trading" required>
+          </label>
+          <label>
+            <span>Currency</span>
+            <select id="new-workspace-currency">
+              <option value="INR">Indian Rupee (INR)</option>
+              <option value="USD">US Dollar (USD)</option>
+              <option value="EUR">Euro (EUR)</option>
+              <option value="GBP">British Pound (GBP)</option>
+              <option value="AED">UAE Dirham (AED)</option>
+              <option value="SAR">Saudi Riyal (SAR)</option>
+              <option value="CAD">Canadian Dollar (CAD)</option>
+              <option value="AUD">Australian Dollar (AUD)</option>
+              <option value="SGD">Singapore Dollar (SGD)</option>
+              <option value="JPY">Japanese Yen (JPY)</option>
+              <option value="BDT">Bangladeshi Taka (BDT)</option>
+              <option value="NPR">Nepalese Rupee (NPR)</option>
+              <option value="PKR">Pakistani Rupee (PKR)</option>
+            </select>
+          </label>
+          <button class="button button-primary full-button" type="submit">
+            Create and get invite code
+          </button>
+        </form>
+
+        <form id="join-workspace-form" class="choice-panel">
+          <h2>Join business</h2>
+          <label>
+            <span>Invite code</span>
+            <input id="join-invite-code" class="code-input" type="text"
+                   minlength="6" maxlength="20" placeholder="Example: A7F29C8D" required>
+          </label>
+          <button class="button button-secondary full-button" type="submit">
+            Join shared workspace
+          </button>
+        </form>
+      </div>
+
+      <button class="button button-secondary install-entry"
+              type="button" data-open-install>
+        Install ExpenseSplitter
+      </button>
+      <button id="workspace-signout" class="text-button auth-link" type="button">
+        Sign out
+      </button>
+    </article>
+  </section>
+
+  <div id="app" hidden>
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="brand-mark small">ES</div>
+        <div>
+          <p class="eyebrow">Live shared workspace</p>
+          <h1 id="business-title">ExpenseSplitter</h1>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <span id="connection-status" class="status-pill online">Online</span>
+        <select id="workspace-selector" aria-label="Choose workspace"></select>
+        <button id="install-button" class="button button-secondary" type="button" data-open-install>
+          Install
+        </button>
+        <button id="signout-button" class="button button-ghost" type="button">
+          Sign out
+        </button>
+      </div>
+    </header>
+
+    <main class="app-shell">
+      <nav class="tab-bar" aria-label="Main navigation">
+        <button class="tab active" data-view="dashboard">Dashboard</button>
+        <button class="tab" data-view="add-expense">Add Expense</button>
+        <button class="tab" data-view="history">History</button>
+        <button class="tab" data-view="partners">Partners</button>
+        <button class="tab" data-view="team">Team</button>
+      </nav>
+
+      <section id="dashboard" class="view active">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Automatically synchronized</p>
+            <h2>Monthly dashboard</h2>
+          </div>
+          <label class="compact-field">
+            <span>Month</span>
+            <input id="dashboard-month" type="month">
+          </label>
+        </div>
+
+        <div class="metric-grid">
+          <article class="metric-card">
+            <span>Total expense</span>
+            <strong id="metric-total">0</strong>
+          </article>
+          <article class="metric-card">
+            <span>Entries</span>
+            <strong id="metric-count">0</strong>
+          </article>
+          <article class="metric-card">
+            <span>Partners</span>
+            <strong id="metric-partners">0</strong>
+          </article>
+          <article class="metric-card">
+            <span>Average expense</span>
+            <strong id="metric-average">0</strong>
+          </article>
+        </div>
+
+        <div class="two-column">
+          <article class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Individual totals</p>
+                <h3>Partner summary</h3>
+              </div>
+            </div>
+            <div id="summary-table-wrap" class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Partner</th>
+                    <th>Paid</th>
+                    <th>Share</th>
+                    <th>Balance</th>
+                  </tr>
+                </thead>
+                <tbody id="summary-body"></tbody>
+              </table>
+            </div>
+            <div id="summary-empty" class="empty-state" hidden>
+              No expenses are available for this month.
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Final adjustment</p>
+                <h3>Who should pay whom</h3>
+              </div>
+            </div>
+            <div id="settlement-list" class="settlement-list"></div>
+            <div id="settlement-empty" class="empty-state">
+              Add expenses to calculate settlements.
+            </div>
+          </article>
+        </div>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Spending pattern</p>
+              <h3>Expense by category</h3>
+            </div>
+          </div>
+          <div id="category-chart" class="category-chart"></div>
+          <div id="category-empty" class="empty-state">
+            No category data for this month.
+          </div>
+        </article>
+      </section>
+
+      <section id="add-expense" class="view">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Visible to all members</p>
+            <h2>Add expense</h2>
+          </div>
+        </div>
+
+        <article class="panel form-panel">
+          <form id="expense-form">
+            <div class="form-grid">
+              <label>
+                <span>Date</span>
+                <input id="expense-date" type="date" required>
+              </label>
+
+              <label>
+                <span>Amount</span>
+                <input id="expense-amount" type="number" min="0.01" step="0.01"
+                       inputmode="decimal" placeholder="0.00" required>
+              </label>
+
+              <label>
+                <span>Paid by</span>
+                <select id="expense-payer" required></select>
+              </label>
+
+              <label>
+                <span>Category</span>
+                <select id="expense-category">
+                  <option>Food</option>
+                  <option>Travel</option>
+                  <option>Rent</option>
+                  <option>Utilities</option>
+                  <option>Office supplies</option>
+                  <option>Salary / labour</option>
+                  <option>Maintenance</option>
+                  <option>Marketing</option>
+                  <option>Purchase</option>
+                  <option>Other</option>
+                </select>
+              </label>
+
+              <label class="full-width">
+                <span>Description</span>
+                <input id="expense-description" type="text" maxlength="120"
+                       placeholder="Example: Office electricity bill">
+              </label>
+            </div>
+
+            <fieldset>
+              <legend>Divide between</legend>
+              <div class="split-actions">
+                <button id="select-all-partners" class="text-button" type="button">Select all</button>
+                <button id="clear-all-partners" class="text-button" type="button">Clear</button>
+              </div>
+              <div id="participant-list" class="participant-grid"></div>
+              <p id="share-preview" class="helper-text"></p>
+            </fieldset>
+
+            <button id="save-expense-button" class="button button-primary full-button" type="submit">
+              Save and share expense
+            </button>
+          </form>
+
+          <div id="no-partner-message" class="empty-state" hidden>
+            Add at least one partner before recording an expense.
+            <button class="button button-secondary" type="button" data-go-view="partners">
+              Add partners
+            </button>
+          </div>
+        </article>
+      </section>
+
+      <section id="history" class="view">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Shared records</p>
+            <h2>Expense history</h2>
+          </div>
+        </div>
+
+        <article class="panel">
+          <div class="filter-grid">
+            <label>
+              <span>Month</span>
+              <input id="history-month" type="month">
+            </label>
+            <label>
+              <span>Search</span>
+              <input id="history-search" type="search"
+                     placeholder="Description, partner or category">
+            </label>
+            <button id="export-csv" class="button button-secondary" type="button">
+              Export CSV
+            </button>
+          </div>
+
+          <div id="history-list" class="history-list"></div>
+          <div id="history-empty" class="empty-state">
+            No matching expenses found.
+          </div>
+        </article>
+      </section>
+
+      <section id="partners" class="view">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Expense participants</p>
+            <h2>Business partners</h2>
+          </div>
+        </div>
+
+        <div class="two-column">
+          <article class="panel">
+            <h3>Add partner</h3>
+            <form id="partner-form">
+              <label>
+                <span>Partner name</span>
+                <input id="partner-name" type="text" maxlength="50"
+                       placeholder="Enter full name" required>
+              </label>
+              <button class="button button-primary full-button" type="submit">
+                Add partner for everyone
+              </button>
+            </form>
+          </article>
+
+          <article class="panel">
+            <h3>Current and archived partners</h3>
+            <div id="partner-list" class="partner-list"></div>
+            <div id="partner-empty" class="empty-state">
+              No partners added yet.
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="team" class="view">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Access and settings</p>
+            <h2>Team workspace</h2>
+          </div>
+        </div>
+
+        <div class="two-column">
+          <article class="panel invite-panel">
+            <p class="eyebrow">Share this code</p>
+            <h3>Business invite code</h3>
+            <div class="invite-code-row">
+              <strong id="invite-code">--------</strong>
+              <button id="copy-invite-code" class="button button-secondary" type="button">
+                Copy
+              </button>
+            </div>
+            <p class="muted">
+              Every person must create their own account, then join with this code.
+              Do not post the code publicly.
+            </p>
+          </article>
+
+          <article class="panel">
+            <p class="eyebrow">Signed-in users</p>
+            <h3>Workspace members</h3>
+            <div id="member-list" class="member-list"></div>
+          </article>
+        </div>
+
+        <div class="two-column">
+          <article class="panel">
+            <h3>Business settings</h3>
+            <form id="workspace-settings-form">
+              <label>
+                <span>Business name</span>
+                <input id="workspace-name" type="text" maxlength="60" required>
+              </label>
+              <label>
+                <span>Currency</span>
+                <select id="workspace-currency">
+                  <option value="INR">Indian Rupee (INR)</option>
+                  <option value="USD">US Dollar (USD)</option>
+                  <option value="EUR">Euro (EUR)</option>
+                  <option value="GBP">British Pound (GBP)</option>
+                  <option value="AED">UAE Dirham (AED)</option>
+                  <option value="SAR">Saudi Riyal (SAR)</option>
+                  <option value="CAD">Canadian Dollar (CAD)</option>
+                  <option value="AUD">Australian Dollar (AUD)</option>
+                  <option value="SGD">Singapore Dollar (SGD)</option>
+                  <option value="JPY">Japanese Yen (JPY)</option>
+                  <option value="BDT">Bangladeshi Taka (BDT)</option>
+                  <option value="NPR">Nepalese Rupee (NPR)</option>
+                  <option value="PKR">Pakistani Rupee (PKR)</option>
+                </select>
+              </label>
+              <button id="save-workspace-settings" class="button button-primary full-button"
+                      type="submit">
+                Save workspace settings
+              </button>
+              <p id="owner-only-message" class="helper-text"></p>
+            </form>
+          </article>
+
+          <article class="panel">
+            <h3>About synchronization</h3>
+            <p class="muted">
+              Changes are saved to the cloud and delivered to connected members
+              in real time. When offline, the app can show the most recently
+              synchronized data, but new entries require an internet connection.
+            </p>
+            <button id="manual-refresh" class="button button-secondary full-button" type="button">
+              Refresh cloud data
+            </button>
+          </article>
+        </div>
+
+        <div id="feedback-section" class="feedback-layout">
+          <article class="panel feedback-form-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Help improve the app</p>
+                <h3>Send feedback</h3>
+              </div>
+              <span class="feedback-private-badge">Private</span>
+            </div>
+
+            <p class="muted feedback-intro">
+              Report a problem, suggest a feature, or tell us what would make
+              ExpenseSplitter worth paying for. Feedback is visible only to you
+              and the workspace owner.
+            </p>
+
+            <form id="feedback-form">
+              <div class="form-grid">
+                <label>
+                  <span>Feedback type</span>
+                  <select id="feedback-type" required>
+                    <option value="bug">Bug or error</option>
+                    <option value="usability">Difficult or confusing screen</option>
+                    <option value="calculation">Calculation issue</option>
+                    <option value="performance">Slow or connection problem</option>
+                    <option value="suggestion">Feature suggestion</option>
+                    <option value="other">Other</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Overall rating</span>
+                  <select id="feedback-rating" required>
+                    <option value="5">★★★★★ Excellent</option>
+                    <option value="4">★★★★☆ Good</option>
+                    <option value="3" selected>★★★☆☆ Average</option>
+                    <option value="2">★★☆☆☆ Poor</option>
+                    <option value="1">★☆☆☆☆ Very poor</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Screen or activity</span>
+                  <select id="feedback-screen">
+                    <option value="dashboard">Dashboard</option>
+                    <option value="signup">Account creation / sign in</option>
+                    <option value="join">Joining with invite code</option>
+                    <option value="expense">Adding an expense</option>
+                    <option value="history">Expense history</option>
+                    <option value="partners">Partners</option>
+                    <option value="team">Team workspace</option>
+                    <option value="installation">Installation</option>
+                    <option value="other">Other</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Would you pay for Pro?</span>
+                  <select id="feedback-payment">
+                    <option value="yes_99">Yes, around ₹99/month</option>
+                    <option value="yes_199">Yes, around ₹199/month</option>
+                    <option value="maybe" selected>Maybe, after more features</option>
+                    <option value="no">No</option>
+                    <option value="not_sure">Not sure</option>
+                  </select>
+                </label>
+
+                <label class="full-width">
+                  <span>Most useful future feature</span>
+                  <select id="feedback-feature">
+                    <option value="pdf_excel">PDF and Excel reports</option>
+                    <option value="receipt_photos">Receipt photographs</option>
+                    <option value="approval">Expense approval workflow</option>
+                    <option value="audit">Complete audit history</option>
+                    <option value="reminders">Payment reminders</option>
+                    <option value="categories">Custom categories</option>
+                    <option value="gst_tax">GST and tax reports</option>
+                    <option value="member_permissions">Member permissions</option>
+                    <option value="other">Other</option>
+                  </select>
+                </label>
+
+                <label class="full-width">
+                  <span>Describe the problem or suggestion</span>
+                  <textarea id="feedback-message" rows="5" maxlength="2000"
+                            placeholder="What happened? What did you expect? What should be improved?"
+                            required></textarea>
+                </label>
+
+                <label class="full-width">
+                  <span>Contact email (optional)</span>
+                  <input id="feedback-email" type="email" maxlength="160"
+                         placeholder="Email for follow-up">
+                </label>
+              </div>
+
+              <p id="feedback-device-preview" class="helper-text feedback-device"></p>
+              <p id="feedback-availability-message" class="helper-text"></p>
+
+              <button id="submit-feedback-button"
+                      class="button button-primary full-button" type="submit">
+                Submit feedback
+              </button>
+            </form>
+          </article>
+
+          <article id="feedback-inbox-panel" class="panel feedback-inbox-panel">
+            <div class="panel-heading feedback-inbox-heading">
+              <div>
+                <p class="eyebrow">Owner review</p>
+                <h3>Tester feedback inbox</h3>
+              </div>
+              <button id="export-feedback-csv" class="button button-secondary"
+                      type="button">
+                Export CSV
+              </button>
+            </div>
+
+            <p class="muted">
+              Private feedback submitted by members of this workspace.
+            </p>
+
+            <div id="feedback-list" class="feedback-list"></div>
+            <div id="feedback-empty" class="empty-state">
+              No feedback has been submitted yet.
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <button id="feedback-shortcut" class="feedback-shortcut" type="button"
+            aria-label="Send feedback">
+      <span aria-hidden="true">✦</span>
+      Feedback
+    </button>
+
+    <footer>
+      <span id="signed-in-email"></span>
+    </footer>
+  </div>
+
+  <!-- Load order is important: Supabase library, configuration, then app. -->
+  <div id="install-modal" class="install-modal" hidden
+       role="dialog" aria-modal="true" aria-labelledby="install-modal-title">
+    <button class="install-backdrop" type="button" data-close-install
+            aria-label="Close installation instructions"></button>
+    <article class="install-card">
+      <button id="close-install-modal" class="install-close" type="button"
+              data-close-install aria-label="Close">×</button>
+
+      <div class="brand-mark">ES</div>
+      <p class="eyebrow">Use it like a normal app</p>
+      <h2 id="install-modal-title">Install ExpenseSplitter</h2>
+      <p id="install-platform-message" class="install-highlight"></p>
+
+      <div class="install-instructions">
+        <section>
+          <strong>Android</strong>
+          <p>Open the published link in Chrome, tap the three-dot menu, then choose
+             <b>Install app</b> or <b>Add to Home screen</b>.</p>
+        </section>
+        <section>
+          <strong>iPhone or iPad</strong>
+          <p>Open the link in Safari, tap <b>Share</b>, choose
+             <b>Add to Home Screen</b>, then tap <b>Add</b>.</p>
+        </section>
+        <section>
+          <strong>Windows</strong>
+          <p>Open the link in Edge or Chrome and select the install icon in the
+             address bar, or use the browser menu and choose <b>Install</b>.</p>
+        </section>
+        <section>
+          <strong>Mac</strong>
+          <p>In Safari choose <b>File → Add to Dock</b>. In Chrome, use the
+             install icon in the address bar.</p>
+        </section>
+      </div>
+
+      <div class="install-actions">
+        <button id="install-now-button" class="button button-primary"
+                type="button" hidden>
+          Install now
+        </button>
+        <button id="share-app-button" class="button button-secondary"
+                type="button">
+          Share app link
+        </button>
+        <button class="button button-ghost" type="button" data-close-install>
+          Close
+        </button>
+      </div>
+    </article>
+  </div>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./config.js?v=15"></script>
+  <script src="./app.js?v=15" defer></script>
+</body>
+</html>
